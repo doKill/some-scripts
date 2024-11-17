@@ -1,3 +1,9 @@
+"""
+用crontab每天自动切换站点
+20 14 * * * curl -s https://raw.githubusercontent.com/doKill/some-py-codes/master/autoChangHySite.py | python3
+"""
+
+
 from datetime import datetime
 import random
 import subprocess
