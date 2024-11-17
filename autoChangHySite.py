@@ -100,6 +100,7 @@ def restart_service(url):
         # 使用 subprocess 执行 systemctl restart 命令
         subprocess.run(['sudo', 'systemctl', 'restart', 'hysteria-server.service'], check=True)
         logging.info(f"Masquerade URL已更改，当前使用的是: {url}")
+        print(f"Masquerade URL已更改，当前使用的是: {url}")
     except subprocess.CalledProcessError as e:
         logging.error(f"重启服务时出错: {e}, 失败时的目标 URL: {url}")
 
