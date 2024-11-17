@@ -1,9 +1,36 @@
 from datetime import datetime
 import random
-import yaml
 import subprocess
 import logging
 import os
+import sys
+
+def check_and_install_yaml():
+    """
+    检查是否安装 PyYAML 模块。如果未安装，则通过 apt-get 安装。
+    """
+    try:
+        import yaml
+        print(f"PyYAML 已安装，版本: {yaml.__version__}")
+    except ImportError:
+        print("未检测到 PyYAML 模块，正在尝试通过 apt-get 安装...")
+        try:
+            subprocess.run(["sudo", "apt-get", "update"], check=True)
+            subprocess.run(["sudo", "apt-get", "install", "-y", "python3-yaml"], check=True)
+            print("PyYAML 模块已通过 apt-get 成功安装。")
+        except subprocess.CalledProcessError as e:
+            print(f"通过 apt-get 安装 PyYAML 模块失败，请检查网络连接或权限问题。\n错误详情: {e}")
+            sys.exit(1)
+        # 安装后重新导入
+        try:
+            import yaml
+        except ImportError:
+            print("安装后加载 PyYAML 模块失败，请检查环境配置。")
+            sys.exit(1)
+    return yaml
+
+# 使用模块
+yaml = check_and_install_yaml()
 
 # 定义日志文件路径
 LOG_FILE = '/root/hy/auto-change-site.log'
@@ -42,23 +69,27 @@ urls = ['https://harvard.edu','https://stanford.edu','https://mit.edu','https://
 config_file_path = '/etc/hysteria/config.yaml'
 
 def update_config():
-    # 随机选择一个 URL
-    selected_url = random.choice(urls)
-    
-    # 读取当前配置文件
-    with open(config_file_path, 'r') as file:
-        config = yaml.safe_load(file)
-    
-    # 更新 URL
-    if 'masquerade' in config and 'proxy' in config['masquerade']:
-        config['masquerade']['proxy']['url'] = selected_url
+    try:
+        # 随机选择一个 URL
+        selected_url = random.choice(urls)
+        
+        # 读取当前配置文件
+        with open(config_file_path, 'r') as file:
+            config = yaml.safe_load(file)
+        
+        # 更新 URL
+        if 'masquerade' in config and 'proxy' in config['masquerade']:
+            config['masquerade']['proxy']['url'] = selected_url
 
-    # 写入更新后的配置文件
-    with open(config_file_path, 'w') as file:
-        yaml.dump(config, file)
+        # 写入更新后的配置文件
+        with open(config_file_path, 'w') as file:
+            yaml.dump(config, file)
 
-    # 重启 hysteria-server 服务
-    restart_service(selected_url)
+        # 重启服务时传入选中的 URL
+        restart_service(selected_url)
+    except Exception as e:
+        logging.error(f"更新配置时出错: {e}")
+        exit(1)
 
 def restart_service(url):
     try:
