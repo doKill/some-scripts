@@ -73,7 +73,7 @@ urls = ['https://bing.com']
 usUrls = ['https://harvard.edu','https://stanford.edu','https://mit.edu','https://caltech.edu','https://uchicago.edu','https://princeton.edu','https://columbia.edu','https://yale.edu','https://upenn.edu','https://duke.edu','https://nyu.edu','https://berkeley.edu','https://cornell.edu','https://northwestern.edu','https://umich.edu','https://cmu.edu','https://usc.edu','https://gatech.edu','https://washington.edu','https://ucla.edu','https://www.imdb.com/','https://www.zygotebody.com/','https://javascript.info/','https://www.tesla.com/','https://clippingmagic.com/','https://www.dell.com/en-us/gaming/','https://us.louisvuitton.com/','https://www.prada.com/us','https://www.gucci.com/us','https://www.porsche.com/usa/','https://www.cartier.com/en-us/home','https://www.dior.com/en_us','https://www.rolex.com/en-us','https://ipcheck.ing/']
 sgUrls = ['https://www.nus.edu.sg','https://www.ntu.edu.sg','https://www.smu.edu.sg','https://www.sutd.edu.sg','https://www.suss.edu.sg','https://www.singaporetech.edu.sg','https://www.lasalle.edu.sg','https://www.nafa.edu.sg','https://www.sim.edu.sg','https://www.suss.edu.sg','https://www.informatics.edu.sg','https://www.jcu.edu.sg','https://www.concordia.edu.sg','https://www.dimensions.edu.sg','https://www.kaplan.com.sg','https://www.raffles-iao.com','https://www.psb-academy.edu.sg','https://www.sbs.edu.sg','https://www.shrm.edu.sg']
 
-country = sys.argv[0]
+country = sys.argv[1]
 match country:
     case "sg":
         urls = sgUrls
