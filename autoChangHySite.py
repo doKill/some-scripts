@@ -11,13 +11,11 @@ def check_and_install_yaml():
     """
     try:
         import yaml
-        print(f"PyYAML 已安装，版本: {yaml.__version__}")
     except ImportError:
         print("未检测到 PyYAML 模块，正在尝试通过 apt-get 安装...")
         try:
             subprocess.run(["sudo", "apt-get", "update"], check=True)
             subprocess.run(["sudo", "apt-get", "install", "-y", "python3-yaml"], check=True)
-            print("PyYAML 模块已通过 apt-get 成功安装。")
         except subprocess.CalledProcessError as e:
             print(f"通过 apt-get 安装 PyYAML 模块失败，请检查网络连接或权限问题。\n错误详情: {e}")
             sys.exit(1)
@@ -96,7 +94,6 @@ def restart_service(url):
         # 使用 subprocess 执行 systemctl restart 命令
         subprocess.run(['sudo', 'systemctl', 'restart', 'hysteria-server.service'], check=True)
         logging.info(f"Masquerade URL已更改，当前使用的是: {url}")
-        print(f"Masquerade URL已更改，当前使用的是: {url}")
     except subprocess.CalledProcessError as e:
         logging.error(f"重启服务时出错: {e}, 失败时的目标 URL: {url}")
 
