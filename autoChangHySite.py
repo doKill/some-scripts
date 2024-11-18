@@ -1,5 +1,5 @@
 """
-用crontab每天自动切换站点,目前可选参数为 us,sg
+用crontab每天自动切换站点,目前可选参数为 us,sg,jp
 20 14 * * * curl -s https://raw.githubusercontent.com/doKill/some-py-codes/master/autoChangHySite.py | python3 - us
 """
 
