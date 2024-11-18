@@ -1,6 +1,6 @@
 """
-用crontab每天自动切换站点,目前可选参数为 us,sg,jp
-20 14 * * * curl -s https://raw.githubusercontent.com/doKill/some-py-codes/master/autoChangHySite.py | python3 - us
+用crontab每天自动切换站点,目前可更改地区有 us,sg,jp
+20 14 * * * curl -s https://raw.githubusercontent.com/doKill/some-py-codes/master/autoChangHySite.py | python3
 """
 
 
@@ -67,23 +67,50 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
+# 获取服务器所属国家
+def get_server_country():
+    try:
+        result = subprocess.run(['curl', '-s', 'https://ip-api.com/json/'], capture_output=True, text=True)
+        data = result.stdout
+        import json
+        parsed_data = json.loads(data)
+        return parsed_data.get('countryCode', 'US')
+    except Exception as e:
+        return f"错误: {e}"
 
-# URL 数组
-urls = ['https://bing.com']
-usUrls = ['https://harvard.edu','https://stanford.edu','https://mit.edu','https://caltech.edu','https://uchicago.edu','https://princeton.edu','https://columbia.edu','https://yale.edu','https://upenn.edu','https://duke.edu','https://nyu.edu','https://berkeley.edu','https://cornell.edu','https://northwestern.edu','https://umich.edu','https://cmu.edu','https://usc.edu','https://gatech.edu','https://washington.edu','https://ucla.edu','https://www.imdb.com/','https://www.zygotebody.com/','https://javascript.info/','https://www.tesla.com/','https://clippingmagic.com/','https://www.dell.com/en-us/gaming/','https://us.louisvuitton.com/','https://www.prada.com/us','https://www.gucci.com/us','https://www.porsche.com/usa/','https://www.cartier.com/en-us/home','https://www.dior.com/en_us','https://www.rolex.com/en-us','https://ipcheck.ing/']
-sgUrls = ['https://www.nus.edu.sg','https://www.ntu.edu.sg','https://www.smu.edu.sg','https://www.sutd.edu.sg','https://www.suss.edu.sg','https://www.singaporetech.edu.sg','https://www.lasalle.edu.sg','https://www.nafa.edu.sg','https://www.sim.edu.sg','https://www.suss.edu.sg','https://www.informatics.edu.sg','https://www.jcu.edu.sg','https://www.concordia.edu.sg','https://www.dimensions.edu.sg','https://www.kaplan.com.sg','https://www.raffles-iao.com','https://www.psb-academy.edu.sg','https://www.sbs.edu.sg','https://www.shrm.edu.sg']
-jpUrls = ['https://www.u-tokyo.ac.jp','https://www.kyoto-u.ac.jp','https://www.titech.ac.jp','https://www.osaka-u.ac.jp','https://www.tohoku.ac.jp','https://www.nagoya-u.ac.jp','https://www.kyushu-u.ac.jp','https://www.hokudai.ac.jp','https://www.waseda.jp','https://www.keio.ac.jp','https://www.tsukuba.ac.jp','https://www.kobe-u.ac.jp','https://www.hiroshima-u.ac.jp','https://www.hit-u.ac.jp','https://www.ritsumei.ac.jp','https://www.tmd.ac.jp','https://www.tus.ac.jp','https://www.chiba-u.ac.jp','https://www.nagasaki-u.ac.jp','https://www.okayama-u.ac.jp']
+# 定义各国的URL列表
+url_mapping = {
+    'sg': ['https://www.nus.edu.sg', 'https://www.ntu.edu.sg', 'https://www.smu.edu.sg', 
+           'https://www.sutd.edu.sg', 'https://www.suss.edu.sg', 'https://www.singaporetech.edu.sg',
+           'https://www.lasalle.edu.sg', 'https://www.nafa.edu.sg', 'https://www.sim.edu.sg',
+           'https://www.suss.edu.sg', 'https://www.informatics.edu.sg', 'https://www.jcu.edu.sg',
+           'https://www.concordia.edu.sg', 'https://www.dimensions.edu.sg', 'https://www.kaplan.com.sg',
+           'https://www.raffles-iao.com', 'https://www.psb-academy.edu.sg', 'https://www.sbs.edu.sg',
+           'https://www.shrm.edu.sg'],
+    
+    'us': ['https://harvard.edu', 'https://stanford.edu', 'https://mit.edu', 'https://caltech.edu',
+           'https://uchicago.edu', 'https://princeton.edu', 'https://columbia.edu', 'https://yale.edu',
+           'https://upenn.edu', 'https://duke.edu', 'https://nyu.edu', 'https://berkeley.edu',
+           'https://cornell.edu', 'https://northwestern.edu', 'https://umich.edu', 'https://cmu.edu',
+           'https://usc.edu', 'https://gatech.edu', 'https://washington.edu', 'https://ucla.edu',
+           'https://www.imdb.com/', 'https://www.zygotebody.com/', 'https://javascript.info/',
+           'https://www.tesla.com/', 'https://clippingmagic.com/', 'https://www.dell.com/en-us/gaming/',
+           'https://us.louisvuitton.com/', 'https://www.prada.com/us', 'https://www.gucci.com/us',
+           'https://www.porsche.com/usa/', 'https://www.cartier.com/en-us', 'https://www.dior.com/en_us',
+           'https://www.rolex.com/en-us', 'https://ipcheck.ing/'],
+    
+    'jp': ['https://www.u-tokyo.ac.jp', 'https://www.kyoto-u.ac.jp', 'https://www.titech.ac.jp',
+           'https://www.osaka-u.ac.jp', 'https://www.tohoku.ac.jp', 'https://www.nagoya-u.ac.jp',
+           'https://www.kyushu-u.ac.jp', 'https://www.hokudai.ac.jp', 'https://www.waseda.jp',
+           'https://www.keio.ac.jp', 'https://www.tsukuba.ac.jp', 'https://www.kobe-u.ac.jp',
+           'https://www.hiroshima-u.ac.jp', 'https://www.hit-u.ac.jp', 'https://www.ritsumei.ac.jp',
+           'https://www.tmd.ac.jp', 'https://www.tus.ac.jp', 'https://www.chiba-u.ac.jp',
+           'https://www.nagasaki-u.ac.jp', 'https://www.okayama-u.ac.jp']
+}
 
-country = sys.argv[1].lower()
-match country:
-    case "sg":
-        urls = sgUrls
-    case "us":
-        urls = usUrls
-    case "jp":
-        urls = jpUrls
-    case _:
-        urls = ['https://bing.com']
+# 获取国家代码并查找对应的URL列表
+countryCode = get_server_country()
+urls = url_mapping.get(countryCode.lower(), ['https://bing.com'])
 
 def update_config():
     config_file_path = '/etc/hysteria/config.yaml'
