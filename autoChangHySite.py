@@ -76,6 +76,7 @@ def get_server_country():
         parsed_data = json.loads(data)
         return parsed_data.get('countryCode', 'US')
     except Exception as e:
+        print("获取国家代码错误  {e}")
         return f"错误: {e}"
 
 # 定义各国的URL列表
