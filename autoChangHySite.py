@@ -70,7 +70,7 @@ logging.basicConfig(
 # 获取服务器所属国家
 def get_server_country():
     try:
-        result = subprocess.run(['curl', '-s', 'ip-api.com'], capture_output=True, text=True)
+        result = subprocess.run(['curl', '-s', 'http://ip-api.com/json'], capture_output=True, text=True)
         data = result.stdout
         import json
         parsed_data = json.loads(data)
