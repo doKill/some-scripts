@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 设置远程配置文件的URL
-REMOTE_URL="https://raw.githubusercontent.com/doKill/some-scripts/master/banv6/list.conf"
+REMOTE_URL="./list.conf"
 LOCAL_FILE="/etc/dnsmasq.conf"
 
 # 获取配置文件的修改时间
