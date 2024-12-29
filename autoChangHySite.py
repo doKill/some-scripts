@@ -32,7 +32,9 @@ url_mapping = {
            'https://www.suss.edu.sg', 'https://www.informatics.edu.sg', 'https://www.jcu.edu.sg',
            'https://www.concordia.edu.sg', 'https://www.dimensions.edu.sg', 'https://www.kaplan.com.sg',
            'https://www.raffles-iao.com', 'https://www.psb-academy.edu.sg', 'https://www.sbs.edu.sg',
-           'https://www.shrm.edu.sg'],
+           'https://www.shrm.edu.sg','https://www.qoo10.sg','https://www.lazada.sg','https://shopee.sg',
+           'https://www.carousell.sg','https://www.hardwarezone.com.sg','https://www.straitstimes.com',
+           'https://www.channelnewsasia.com','https://www.gov.sg','https://www.singtel.com'],
     
     'us': ['https://harvard.edu', 'https://stanford.edu', 'https://mit.edu', 'https://caltech.edu',
            'https://uchicago.edu', 'https://princeton.edu', 'https://columbia.edu', 'https://yale.edu',
