@@ -2,7 +2,7 @@
 
 # 配置远程 URL
 URLS=(
-  "https://raw.githubusercontent.com/v2fly/domain-list-community/master/data/netflix"
+  # "https://raw.githubusercontent.com/v2fly/domain-list-community/master/data/netflix"
   "https://raw.githubusercontent.com/v2fly/domain-list-community/master/data/openai"
 )
 LOCAL_FILE="/etc/dnsmasq.conf"
