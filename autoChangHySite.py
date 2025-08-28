@@ -11,7 +11,6 @@ import logging
 import os
 import sys
 
-
 # 获取服务器所属国家
 def get_server_country():
     try:
@@ -22,41 +21,62 @@ def get_server_country():
         return parsed_data.get('countryCode', 'US')
     except Exception as e:
         print(f"获取国家代码错误  {e}")
-        return f"错误: {e}"
+        return "US" # 出错时直接返回 US
 
-# 定义各国的URL列表
+# --- 新增部分：定义高抗性URL列表 ---
+gfw_resistant_urls = [
+    'https://www.apple.com',
+    'https://developer.apple.com',
+    'https://raw.githubusercontent.com',
+    'https://www.microsoft.com',
+    'https://update.microsoft.com',
+    'https://azure.microsoft.com',
+    'https://aws.amazon.com',
+    'https://s3.amazonaws.com',
+    'https://d1.awsstatic.com',
+    'https://scholar.google.com',
+    'https://arxiv.org',
+    'https://www.ieee.org',
+    'https://www.springer.com',
+    'https://www.debian.org',
+    'https://download.oracle.com',
+    'https://developer.nvidia.com'
+]
+
+# --- 修改部分：将高抗性URL合并到每个国家的原有列表中 ---
+# 为了避免重复，我们使用 set 进行合并后再转回 list
 url_mapping = {
-    'sg': ['https://www.nus.edu.sg', 'https://www.ntu.edu.sg', 'https://www.smu.edu.sg', 
-           'https://www.sutd.edu.sg', 'https://www.suss.edu.sg', 'https://www.singaporetech.edu.sg',
-           'https://www.lasalle.edu.sg', 'https://www.nafa.edu.sg', 'https://www.sim.edu.sg',
-           'https://www.informatics.edu.sg', 'https://www.jcu.edu.sg','https://www.concordia.edu.sg', 
-           'https://www.dimensions.edu.sg', 'https://www.kaplan.com.sg','https://www.raffles-iao.com', 
-           'https://www.psb-academy.edu.sg', 'https://www.sbs.edu.sg','https://www.singtel.com',
-           'https://www.shrm.edu.sg','https://www.qoo10.sg','https://www.lazada.sg','https://shopee.sg',
-           'https://www.carousell.sg','https://www.hardwarezone.com.sg','https://www.straitstimes.com',
-           'https://www.channelnewsasia.com','https://www.gov.sg'],
+    'sg': list(set(['https://www.nus.edu.sg', 'https://www.ntu.edu.sg', 'https://www.smu.edu.sg', 
+                     'https://www.sutd.edu.sg', 'https://www.suss.edu.sg', 'https://www.singaporetech.edu.sg',
+                     'https://www.lasalle.edu.sg', 'https://www.nafa.edu.sg', 'https://www.sim.edu.sg',
+                     'https://www.informatics.edu.sg', 'https://www.jcu.edu.sg','https://www.concordia.edu.sg', 
+                     'https://www.dimensions.edu.sg', 'https://www.kaplan.com.sg','https://www.raffles-iao.com', 
+                     'https://www.psb-academy.edu.sg', 'https://www.sbs.edu.sg','https://www.singtel.com',
+                     'https://www.shrm.edu.sg','https://www.qoo10.sg','https://www.lazada.sg','https://shopee.sg',
+                     'https://www.carousell.sg','https://www.hardwarezone.com.sg','https://www.straitstimes.com',
+                     'https://www.channelnewsasia.com','https://www.gov.sg'] + gfw_resistant_urls)),
     
-    'us': ['https://harvard.edu', 'https://stanford.edu', 'https://mit.edu', 'https://caltech.edu',
-           'https://uchicago.edu', 'https://princeton.edu', 'https://columbia.edu', 'https://yale.edu',
-           'https://upenn.edu', 'https://duke.edu', 'https://nyu.edu', 'https://berkeley.edu',
-           'https://cornell.edu', 'https://northwestern.edu', 'https://umich.edu', 'https://cmu.edu',
-           'https://usc.edu', 'https://gatech.edu', 'https://washington.edu', 'https://ucla.edu',
-           'https://www.imdb.com/', 'https://www.zygotebody.com/', 'https://javascript.info/',
-           'https://www.tesla.com/', 'https://clippingmagic.com/', 'https://www.dell.com/en-us/gaming/',
-           'https://us.louisvuitton.com/', 'https://www.prada.com/us', 'https://www.gucci.com/us',
-           'https://www.porsche.com/usa/', 'https://www.cartier.com/en-us', 'https://www.dior.com/en_us',
-           'https://www.rolex.com/en-us','https://www.ncbi.nlm.nih.gov/pmc','https://www.jstor.org',
-           'https://muse.jhu.edu','https://arxiv.org','https://www.researchgate.net',
-           'https://www.academia.edu','https://eric.ed.gov','https://www.ssrn.com',
-           'https://www.plos.org'],
+    'us': list(set(['https://harvard.edu', 'https://stanford.edu', 'https://mit.edu', 'https://caltech.edu',
+                     'https://uchicago.edu', 'https://princeton.edu', 'https://columbia.edu', 'https://yale.edu',
+                     'https://upenn.edu', 'https://duke.edu', 'https://nyu.edu', 'https://berkeley.edu',
+                     'https://cornell.edu', 'https://northwestern.edu', 'https://umich.edu', 'https://cmu.edu',
+                     'https://usc.edu', 'https://gatech.edu', 'https://washington.edu', 'https://ucla.edu',
+                     'https://www.imdb.com/', 'https://www.zygotebody.com/', 'https://javascript.info/',
+                     'https://www.tesla.com/', 'https://clippingmagic.com/', 'https://www.dell.com/en-us/gaming/',
+                     'https://us.louisvuitton.com/', 'https://www.prada.com/us', 'https://www.gucci.com/us',
+                     'https://www.porsche.com/usa/', 'https://www.cartier.com/en-us', 'https://www.dior.com/en_us',
+                     'https://www.rolex.com/en-us','https://www.ncbi.nlm.nih.gov/pmc','https://www.jstor.org',
+                     'https://muse.jhu.edu','https://arxiv.org','https://www.researchgate.net',
+                     'https://www.academia.edu','https://eric.ed.gov','https://www.ssrn.com',
+                     'https://www.plos.org'] + gfw_resistant_urls)),
     
-    'jp': ['https://www.u-tokyo.ac.jp', 'https://www.kyoto-u.ac.jp', 'https://www.titech.ac.jp',
-           'https://www.osaka-u.ac.jp', 'https://www.tohoku.ac.jp', 'https://www.nagoya-u.ac.jp',
-           'https://www.kyushu-u.ac.jp', 'https://www.hokudai.ac.jp', 'https://www.waseda.jp',
-           'https://www.keio.ac.jp', 'https://www.tsukuba.ac.jp', 'https://www.kobe-u.ac.jp',
-           'https://www.hiroshima-u.ac.jp', 'https://www.hit-u.ac.jp', 'https://www.ritsumei.ac.jp',
-           'https://www.tmd.ac.jp', 'https://www.tus.ac.jp', 'https://www.chiba-u.ac.jp',
-           'https://www.nagasaki-u.ac.jp', 'https://www.okayama-u.ac.jp']
+    'jp': list(set(['https://www.u-tokyo.ac.jp', 'https://www.kyoto-u.ac.jp', 'https://www.titech.ac.jp',
+                     'https://www.osaka-u.ac.jp', 'https://www.tohoku.ac.jp', 'https://www.nagoya-u.ac.jp',
+                     'https://www.kyushu-u.ac.jp', 'https://www.hokudai.ac.jp', 'https://www.waseda.jp',
+                     'https://www.keio.ac.jp', 'https://www.tsukuba.ac.jp', 'https://www.kobe-u.ac.jp',
+                     'https://www.hiroshima-u.ac.jp', 'https://www.hit-u.ac.jp', 'https://www.ritsumei.ac.jp',
+                     'https://www.tmd.ac.jp', 'https://www.tus.ac.jp', 'https://www.chiba-u.ac.jp',
+                     'https://www.nagasaki-u.ac.jp', 'https://www.okayama-u.ac.jp'] + gfw_resistant_urls))
 }
 
 # 获取国家代码并查找对应的URL列表
@@ -78,13 +98,13 @@ def check_and_install_yaml():
         except subprocess.CalledProcessError as e:
             print(f"通过 apt-get 安装 PyYAML 模块失败，请检查网络连接或权限问题。\n错误详情: {e}")
             sys.exit(1)
-        # 安装后重新导入
-        try:
-            import yaml
-        except ImportError:
-            print("安装后加载 PyYAML 模块失败，请检查环境配置。")
-            sys.exit(1)
-    return yaml
+    # 安装后重新导入
+    try:
+        import yaml
+        return yaml # 修改：返回导入的模块
+    except ImportError:
+        print("安装后加载 PyYAML 模块失败，请检查环境配置。")
+        sys.exit(1)
 
 # 使用模块
 yaml = check_and_install_yaml()
