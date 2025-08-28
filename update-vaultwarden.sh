@@ -31,3 +31,6 @@ docker image prune -f
 
 echo "=== 更新完成 ==="
 docker ps --filter "name=$CONTAINER_NAME"
+
+
+# 每周日凌晨 3 点执行更新  0 3 * * 0 curl -fsSL https://raw.githubusercontent.com/doKill/some-scripts/master/update-vaultwarden.sh | bash >> /root/update-vaultwarden.log 2>&1
