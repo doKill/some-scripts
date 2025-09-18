@@ -5,7 +5,7 @@ api:
 include: []
 log:
   file: /var/log/mosdns.log
-  level: warn
+  level: error
 plugins:
   - tag: geosite_cn
     type: domain_set
