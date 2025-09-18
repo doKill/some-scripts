@@ -1,0 +1,372 @@
+# GeoSite 标签: apple, cn, geolocation-!cn, disney, netflix, hulu
+# GeoIP 标签: cn
+api:
+    http: 0.0.0.0:9092   # API 面板端口
+
+include: []
+
+log:
+    file: /var/log/mosdns.log  # 日志输出文件
+    level: debug               # 日志级别，debug 表示最详细日志
+
+plugins:
+    # ------------------ 域名/IP 数据集 ------------------
+    - tag: geosite_cn
+      type: domain_set
+      args:
+        files:
+            - /var/mosdns/geosite_cn.txt   # 中国域名列表
+
+    - tag: geoip_cn
+      type: ip_set
+      args:
+        files:
+            - /var/mosdns/geoip_cn.txt     # 中国 IP 列表
+
+    - tag: geosite_apple
+      type: domain_set
+      args:
+        files:
+            - /var/mosdns/geosite_apple.txt  # 苹果服务域名
+
+    - tag: geosite_no_cn
+      type: domain_set
+      args:
+        files:
+            - /var/mosdns/geosite_geolocation-!cn.txt  # 非中国域名
+
+    - tag: whitelist
+      type: domain_set
+      args:
+        files:
+            - /etc/mosdns/rule/whitelist.txt   # 白名单
+
+    - tag: blocklist
+      type: domain_set
+      args:
+        files:
+            - /etc/mosdns/rule/blocklist.txt   # 黑名单
+
+    - tag: greylist
+      type: domain_set
+      args:
+        files:
+            - /etc/mosdns/rule/greylist.txt    # 灰名单
+
+    - tag: ddnslist
+      type: domain_set
+      args:
+        files:
+            - /etc/mosdns/rule/ddnslist.txt    # 动态域名列表（DDNS）
+
+    - tag: hosts
+      type: hosts
+      args:
+        files:
+            - /etc/mosdns/rule/hosts.txt       # Hosts 规则
+
+    - tag: redirect
+      type: redirect
+      args:
+        files:
+            - /etc/mosdns/rule/redirect.txt    # 域名重定向规则
+
+    - tag: adlist
+      type: domain_set
+      args:
+        files:
+            - /var/mosdns/disable-ads.txt      # 广告拦截列表
+
+    - tag: local_ptr
+      type: domain_set
+      args:
+        files:
+            - /etc/mosdns/rule/local-ptr.txt   # 本地 PTR 拦截（反向解析）
+
+    - tag: stream_media
+      type: domain_set
+      args:
+        files:                                # 流媒体服务域名
+            - /var/mosdns/geosite_disney.txt
+            - /var/mosdns/geosite_netflix.txt
+            - /var/mosdns/geosite_hulu.txt
+            - /etc/mosdns/rule/streaming.txt
+
+    - tag: cloudflare_cidr
+      type: ip_set
+      args:
+        files:
+            - /etc/mosdns/rule/cloudflare-cidr.txt   # Cloudflare IP 段
+
+    # ------------------ 缓存 ------------------
+    - tag: lazy_cache
+      type: cache
+      args:
+        size: 8000             # 缓存大小
+        lazy_cache_ttl: 86400  # 缓存有效期 24 小时
+
+    # ------------------ 转发规则 ------------------
+    - tag: forward_xinfeng_udp
+      type: forward
+      args:
+        concurrent: 2          # 并发查询数
+        upstreams:
+            - addr: 114.114.114.114
+            - addr: 114.114.115.115
+
+    - tag: forward_local
+      type: forward
+      args:
+        concurrent: 3
+        upstreams:             # 阿里、DNSPod 本地 DoH
+            - addr: https://223.6.6.6/dns-query
+              bootstrap: 223.5.5.5
+              enable_pipeline: true
+              idle_timeout: 30
+              insecure_skip_verify: false
+            - addr: https://223.5.5.5/dns-query
+              bootstrap: 223.5.5.5
+              enable_pipeline: true
+              idle_timeout: 30
+              insecure_skip_verify: false
+            - addr: https://1.12.12.12/dns-query
+              bootstrap: 223.5.5.5
+              enable_pipeline: true
+              idle_timeout: 30
+              insecure_skip_verify: false
+
+    - tag: ali                 # ali doh dot h3
+      type: forward
+      args:
+        concurrent: 3
+        upstreams:
+          - addr: "https://dns.alidns.com/dns-query"
+            dial_addr: "223.6.6.6"
+
+          - addr: "tls://dns.alidns.com"
+            dial_addr: "2400:3200:baba::1"
+            enable_pipeline: true
+          - addr: "tls://dns.alidns.com"
+            dial_addr: "223.5.5.5"
+            enable_pipeline: true
+
+          - addr: "https://dns.alidns.com/dns-query"
+            dial_addr: "223.5.5.5"
+            enable_http3: true
+          - addr: "https://dns.alidns.com/dns-query"
+            dial_addr: "2400:3200::1"
+            enable_http3: true
+
+    - tag: dnspod             # dnspod doh dot
+      type: forward
+      args:
+        concurrent: 3
+        upstreams:
+            - addr: "https://doh.pub/dns-query"
+              dial_addr: "1.12.12.12"
+            - addr: "https://doh.pub/dns-query"
+              dial_addr: "120.53.53.53"
+
+            - addr: "tls://dot.pub"
+              dial_addr: "1.12.12.12"
+              enable_pipeline: true
+            - addr: "tls://dot.pub"
+              dial_addr: "120.53.53.53"
+              enable_pipeline: true
+
+    - tag: forward_remote
+      type: forward
+      args:
+        concurrent: 3
+        upstreams:             # Google + Cloudflare 公共 DoH
+            - addr: https://8.8.8.8/dns-query
+              bootstrap: 223.5.5.5
+              enable_pipeline: true
+              idle_timeout: 30
+              insecure_skip_verify: false
+            - addr: https://8.8.4.4/dns-query
+              bootstrap: 223.5.5.5
+              enable_pipeline: true
+              idle_timeout: 30
+              insecure_skip_verify: false
+            - addr: https://1.1.1.1/dns-query
+              bootstrap: 223.5.5.5
+              enable_pipeline: true
+              idle_timeout: 30
+              insecure_skip_verify: false
+
+    - tag: forward_remote_upstream
+      type: sequence
+      args:
+        - exec: ecs x.x.x.x   # 强制指定 ECS (客户端子网)
+        - exec: $forward_remote      # 使用远程转发
+
+    - tag: forward_stream_media
+      type: forward
+      args:
+        concurrent: 3
+        upstreams:                   # Google DNS over TLS，用于流媒体
+            - addr: tls://8.8.8.8
+              bootstrap: 223.5.5.5
+              enable_pipeline: true
+              idle_timeout: 30
+              insecure_skip_verify: false
+
+    - tag: forward_stream_media_upstream
+      type: sequence
+      args:
+        - exec: ecs x.x.x.x   # 同样加 ECS
+        - exec: $forward_stream_media
+
+    # ------------------ TTL 修改 ------------------
+    - tag: modify_ttl
+      type: sequence
+      args:
+        - exec: ttl 0-0   # 非 DDNS 域名 TTL 置 0
+
+    - tag: modify_ddns_ttl
+      type: sequence
+      args:
+        - exec: ttl 5-5   # DDNS 域名 TTL 固定 5 秒
+
+    - tag: has_resp_sequence
+      type: sequence
+      args:
+        - exec: $modify_ddns_ttl
+          matches: qname $ddnslist
+        - exec: $modify_ttl
+          matches: '!qname $ddnslist'
+        - exec: accept
+          matches: has_resp
+
+    # ------------------ 规则分类 ------------------
+    - tag: query_is_non_local_ip
+      type: sequence
+      args:
+        - exec: $forward_local
+        - exec: drop_resp
+          matches: '!resp_ip $geoip_cn'  # 不是中国 IP 的结果丢弃
+
+    - tag: fallback
+      type: fallback
+      args:
+        primary: forward_remote_upstream
+        secondary: forward_remote_upstream
+        threshold: 500
+        always_standby: true
+
+    - tag: apple_domain_fallback
+      type: fallback
+      args:
+        primary: query_is_non_local_ip
+        secondary: forward_xinfeng_udp
+        threshold: 100
+        always_standby: true
+
+    - tag: query_is_apple_domain
+      type: sequence
+      args:
+        - exec: return
+          matches: '!qname $geosite_apple'
+        - exec: $apple_domain_fallback
+
+    - tag: query_is_ddns_domain
+      type: sequence
+      args:
+        - exec: $forward_local
+          matches: qname $ddnslist
+
+    - tag: query_is_local_domain
+      type: sequence
+      args:
+        - exec: $forward_local
+          matches: qname $geosite_cn
+
+    - tag: query_is_no_local_domain
+      type: sequence
+      args:
+        - exec: $forward_remote_upstream
+          matches: qname $geosite_no_cn
+
+    - tag: query_is_whitelist_domain
+      type: sequence
+      args:
+        - exec: $forward_local
+          matches: qname $whitelist
+
+    - tag: query_is_greylist_domain
+      type: sequence
+      args:
+        - exec: $forward_remote_upstream
+          matches: qname $greylist
+
+    - tag: query_is_reject_domain
+      type: sequence
+      args:
+        - exec: reject 3
+          matches: qname $blocklist
+        - exec: reject 3
+          matches: qname $adlist
+        - exec: reject 3
+          matches:
+            - qtype 12
+            - qname $local_ptr
+        - exec: reject 3
+          matches: qtype 65   # HTTPS RR 记录拦截
+
+    - tag: query_is_stream_media_domain
+      type: sequence
+      args:
+        - exec: $forward_stream_media_upstream
+          matches: qname $stream_media
+
+    # ------------------ 主执行逻辑 ------------------
+    - tag: main_sequence
+      type: sequence
+      args:
+        - exec: $hosts
+        - exec: jump has_resp_sequence
+
+        - exec: $lazy_cache
+          matches:
+            - '!qname $ddnslist'
+            - '!qname $blocklist'
+            - '!qname $adlist'
+            - '!qname $local_ptr'
+
+        - exec: $redirect
+        - exec: jump has_resp_sequence
+
+        - exec: $query_is_ddns_domain
+        - exec: jump has_resp_sequence
+
+        - exec: $query_is_whitelist_domain
+        - exec: jump has_resp_sequence
+
+        - exec: $query_is_reject_domain
+        - exec: jump has_resp_sequence
+
+        - exec: $query_is_greylist_domain
+        - exec: jump has_resp_sequence
+
+        - exec: $query_is_local_domain
+        - exec: jump has_resp_sequence
+
+        - exec: $query_is_no_local_domain
+        - exec: jump has_resp_sequence
+
+        - exec: $fallback
+        - exec: jump has_resp_sequence
+
+    # ------------------ 服务入口 ------------------
+    - tag: udp_server
+      type: udp_server
+      args:
+        entry: main_sequence
+        listen: :5333   # 监听 UDP 5333 端口
+
+    - tag: tcp_server
+      type: tcp_server
+      args:
+        entry: main_sequence
+        listen: :5333   # 监听 TCP 5333 端口
