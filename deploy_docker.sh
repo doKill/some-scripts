@@ -2,7 +2,7 @@
 
 set -e
 
-echo "🚀 开始部署 Drone Runner..."
+echo "🚀 开始安装 Docker ..."
 
 # === 检查 Docker 是否已安装 ===
 if command -v docker &> /dev/null; then
