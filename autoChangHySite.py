@@ -25,20 +25,16 @@ def merge_unique(*lists):
     return merged
 
 
+# 获取服务器所属国家
 def get_server_country():
-    """获取服务器国家代码。失败时回退为 US。"""
     try:
-        result = subprocess.run(
-            ["curl", "-fsSL", "--max-time", "8", "https://ip-api.com/json"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        parsed_data = json.loads(result.stdout)
-        return parsed_data.get("countryCode", "US").upper()
+        result = subprocess.run(['curl', '-s', 'http://ip-api.com/json'], capture_output=True, text=True)
+        data = result.stdout
+        parsed_data = json.loads(data)
+        return parsed_data.get('countryCode', 'US')
     except Exception as e:
-        print(f"获取国家代码错误: {e}")
-        return "US"
+        print(f"获取国家代码错误  {e}")
+        return "US" # 出错时直接返回 US
 
 
 gfw_resistant_urls = [
