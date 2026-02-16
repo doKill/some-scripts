@@ -5,6 +5,14 @@ set -eu
 INSTALL_PATH="${CODEX_INSTALL_PATH:-/mnt/sda3/bin/codex}"
 SYMLINK_PATH="${CODEX_SYMLINK_PATH:-/usr/bin/codex}"
 RELEASE_BASE="${CODEX_RELEASE_BASE:-https://github.com/openai/codex/releases/latest/download}"
+CODEX_HOME_DIR="${CODEX_HOME_DIR:-${HOME:-/root}/.codex}"
+CODEX_ENV_FILE="${CODEX_ENV_FILE:-$CODEX_HOME_DIR/.env}"
+CODEX_CONFIG_FILE="${CODEX_CONFIG_FILE:-$CODEX_HOME_DIR/config.toml}"
+CODEX_AUTH_FILE="${CODEX_AUTH_FILE:-$CODEX_HOME_DIR/auth.json}"
+CODEX_PROVIDER_NAME="${CODEX_PROVIDER_NAME:-gmn}"
+CODEX_MODEL="${CODEX_MODEL:-gpt-5.3-codex}"
+CODEX_BASE_URL="${CODEX_BASE_URL:-}"
+CODEX_API_KEY="${CODEX_API_KEY:-}"
 
 PKG_MANAGER=""
 PKG_PREPARED=0
@@ -184,8 +192,204 @@ download_file() {
   exit 1
 }
 
+trim_spaces() {
+  printf '%s' "$1" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+}
+
+normalize_provider_name() {
+  p="$(printf '%s' "$1" | tr -cd 'A-Za-z0-9_-')"
+  [ -n "$p" ] || p="gmn"
+  printf '%s' "$p"
+}
+
+json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+toml_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+ensure_codex_env_file() {
+  if [ -f "$CODEX_ENV_FILE" ]; then
+    return 0
+  fi
+
+  cat > "$CODEX_ENV_FILE" <<'EOF'
+# Fill these two values, then rerun this script once.
+CODEX_BASE_URL=
+CODEX_API_KEY=
+
+# Optional
+CODEX_PROVIDER_NAME=gmn
+CODEX_MODEL=gpt-5.3-codex
+EOF
+  chmod 600 "$CODEX_ENV_FILE"
+  echo "[INFO] created env template: $CODEX_ENV_FILE"
+}
+
+load_codex_env_file() {
+  [ -f "$CODEX_ENV_FILE" ] || return 0
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="$(printf '%s' "$line" | sed 's/\r$//')"
+    case "$line" in
+      ''|\#*) continue ;;
+    esac
+
+    case "$line" in
+      *=*)
+        key="$(trim_spaces "${line%%=*}")"
+        val="$(trim_spaces "${line#*=}")"
+        case "$val" in
+          \"*\") val="${val#\"}"; val="${val%\"}" ;;
+          \'*\') val="${val#\'}"; val="${val%\'}" ;;
+        esac
+
+        case "$key" in
+          CODEX_BASE_URL)
+            [ -n "$CODEX_BASE_URL" ] || CODEX_BASE_URL="$val"
+            ;;
+          CODEX_API_KEY)
+            [ -n "$CODEX_API_KEY" ] || CODEX_API_KEY="$val"
+            ;;
+          CODEX_PROVIDER_NAME)
+            CODEX_PROVIDER_NAME="$val"
+            ;;
+          CODEX_MODEL)
+            CODEX_MODEL="$val"
+            ;;
+        esac
+        ;;
+    esac
+  done < "$CODEX_ENV_FILE"
+}
+
+write_codex_config_toml() {
+  provider="$(normalize_provider_name "$CODEX_PROVIDER_NAME")"
+  model_escaped="$(toml_escape "$CODEX_MODEL")"
+  base_url_value="$CODEX_BASE_URL"
+  if [ -z "$base_url_value" ]; then
+    base_url_value="https://your-base-url/v1"
+  fi
+  base_escaped="$(toml_escape "$base_url_value")"
+
+  cat > "$CODEX_CONFIG_FILE" <<EOF
+# managed-by=install-update-codex
+# This file is generated from: $CODEX_ENV_FILE
+
+model_provider = "$provider"
+model = "$model_escaped"
+model_reasoning_effort = "xhigh"
+disable_response_storage = true
+sandbox_mode = "danger-full-access"
+approval_policy = "never"
+profile = "auto-max"
+file_opener = "vscode"
+
+web_search = "cached"
+suppress_unstable_features_warning = true
+
+[model_providers.$provider]
+name = "$provider"
+base_url = "$base_escaped"
+wire_api = "responses"
+requires_openai_auth = false
+
+[history]
+persistence = "save-all"
+
+[tui]
+notifications = true
+
+[shell_environment_policy]
+inherit = "all"
+ignore_default_excludes = false
+
+[sandbox_workspace_write]
+network_access = true
+
+[features]
+plan_tool = true
+apply_patch_freeform = true
+view_image_tool = true
+unified_exec = false
+streamable_shell = false
+rmcp_client = true
+elevated_windows_sandbox = true
+
+[profiles.auto-max]
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+
+[profiles.review]
+approval_policy = "on-request"
+sandbox_mode = "danger-full-access"
+
+[notice]
+hide_gpt5_1_migration_prompt = true
+EOF
+  chmod 600 "$CODEX_CONFIG_FILE"
+  echo "[INFO] wrote config: $CODEX_CONFIG_FILE"
+}
+
+write_codex_auth_json() {
+  if [ -z "$CODEX_API_KEY" ]; then
+    if [ ! -f "$CODEX_AUTH_FILE" ]; then
+      cat > "$CODEX_AUTH_FILE" <<'EOF'
+{
+  "OPENAI_API_KEY": ""
+}
+EOF
+      chmod 600 "$CODEX_AUTH_FILE"
+      echo "[INFO] created auth placeholder: $CODEX_AUTH_FILE"
+    fi
+    return 0
+  fi
+
+  key_escaped="$(json_escape "$CODEX_API_KEY")"
+  cat > "$CODEX_AUTH_FILE" <<EOF
+{
+  "OPENAI_API_KEY": "$key_escaped"
+}
+EOF
+  chmod 600 "$CODEX_AUTH_FILE"
+  echo "[INFO] wrote auth: $CODEX_AUTH_FILE"
+}
+
+init_codex_config_files() {
+  MANAGED_CONFIG=0
+
+  mkdir -p "$CODEX_HOME_DIR"
+  chmod 700 "$CODEX_HOME_DIR" 2>/dev/null || true
+
+  ensure_codex_env_file
+  load_codex_env_file
+
+  if [ ! -f "$CODEX_CONFIG_FILE" ]; then
+    write_codex_config_toml
+    MANAGED_CONFIG=1
+  elif grep -q 'managed-by=install-update-codex' "$CODEX_CONFIG_FILE"; then
+    write_codex_config_toml
+    MANAGED_CONFIG=1
+  else
+    echo "[INFO] keep existing unmanaged config: $CODEX_CONFIG_FILE"
+  fi
+
+  write_codex_auth_json
+
+  if [ "$MANAGED_CONFIG" = "1" ]; then
+    if [ -z "$CODEX_BASE_URL" ]; then
+      echo "[WARN] CODEX_BASE_URL is empty. fill it in: $CODEX_ENV_FILE"
+    fi
+    if [ -z "$CODEX_API_KEY" ]; then
+      echo "[WARN] CODEX_API_KEY is empty. fill it in: $CODEX_ENV_FILE"
+    fi
+  fi
+}
+
 # Commands we absolutely need.
-for c in uname tar chmod ln mv mkdir rm mktemp; do
+for c in uname tar chmod ln mv mkdir rm mktemp cat sed grep tr; do
   ensure_cmd "$c"
 done
 
@@ -196,6 +400,8 @@ if ! command -v wget >/dev/null 2>&1 && ! command -v curl >/dev/null 2>&1; then
     ensure_cmd curl
   fi
 fi
+
+init_codex_config_files
 
 ARCH="$(uname -m)"
 case "$ARCH" in
