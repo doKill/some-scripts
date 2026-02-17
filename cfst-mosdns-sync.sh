@@ -10,7 +10,9 @@ CFST_AUTO_INSTALL="${CFST_AUTO_INSTALL:-1}"
 CFST_RELEASE_BASE_URL="${CFST_RELEASE_BASE_URL:-https://github.com/XIU2/CloudflareSpeedTest/releases/latest/download}"
 CFST_IPTXT_URL="${CFST_IPTXT_URL:-https://raw.githubusercontent.com/XIU2/CloudflareSpeedTest/master/ip.txt}"
 CFST_ASSET_ARCH_OVERRIDE="${CFST_ASSET_ARCH_OVERRIDE:-}"
-TOPN="${TOPN:-16}"
+CFST_TEST_URL="${CFST_TEST_URL:-https://speed.cloudflare.com/__down?bytes=20000000}"
+CFST_DEBUG="${CFST_DEBUG:-0}"
+TOPN="${TOPN:-5}"
 THREADS="${THREADS:-100}"
 PING_TIMES="${PING_TIMES:-4}"
 DOWNLOAD_COUNT="${DOWNLOAD_COUNT:-10}"
@@ -223,14 +225,32 @@ CUR_IPS_FILE="$WORK_DIR/current_ips.txt"
 CFST_LOG="$WORK_DIR/cfst.log"
 MOSDNS_LOG="$WORK_DIR/mosdns-restart.log"
 
-CFST_ARGS="-f $IP_FILE -n $THREADS -t $PING_TIMES -dn $DOWNLOAD_COUNT -dt $DOWNLOAD_TIME -tl $LATENCY_LIMIT -tlr $LOSS_RATE_LIMIT -sl $SPEED_LIMIT -p 0 -o $RESULT_CSV"
+set -- \
+  -f "$IP_FILE" \
+  -n "$THREADS" \
+  -t "$PING_TIMES" \
+  -dn "$DOWNLOAD_COUNT" \
+  -dt "$DOWNLOAD_TIME" \
+  -tl "$LATENCY_LIMIT" \
+  -tlr "$LOSS_RATE_LIMIT" \
+  -sl "$SPEED_LIMIT" \
+  -p 0 \
+  -o "$RESULT_CSV"
+
 if [ "$USE_DOWNLOAD_TEST" != "1" ]; then
-  CFST_ARGS="$CFST_ARGS -dd"
+  set -- "$@" -dd
+fi
+
+if [ -n "$CFST_TEST_URL" ]; then
+  set -- "$@" -url "$CFST_TEST_URL"
+fi
+
+if [ "$CFST_DEBUG" = "1" ]; then
+  set -- "$@" -debug
 fi
 
 log "start CloudflareSpeedTest"
-# shellcheck disable=SC2086
-if ! "$CFST_BIN" $CFST_ARGS >"$CFST_LOG" 2>&1; then
+if ! "$CFST_BIN" "$@" >"$CFST_LOG" 2>&1; then
   log "CloudflareSpeedTest failed, see $CFST_LOG"
   exit 1
 fi
@@ -243,8 +263,12 @@ if [ ! -s "$NEW_IPS_FILE" ]; then
   exit 1
 fi
 
+: > "$CUR_IPS_FILE"
 uci -q show "$CLOUDFLARE_SECTION.cloudflare_ip" 2>/dev/null \
-  | sed -n "s/.*='\([^']*\)'/\1/p" > "$CUR_IPS_FILE" || true
+  | sed 's/^.*=//' \
+  | tr -d "'" \
+  | tr ' ' '\n' \
+  | sed '/^$/d' > "$CUR_IPS_FILE" || true
 
 if cmp -s "$CUR_IPS_FILE" "$NEW_IPS_FILE"; then
   log "cloudflare_ip unchanged, skip mosdns restart"
