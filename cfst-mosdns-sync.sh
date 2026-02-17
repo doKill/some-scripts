@@ -13,7 +13,7 @@ CFST_ASSET_ARCH_OVERRIDE="${CFST_ASSET_ARCH_OVERRIDE:-}"
 CFST_TEST_URL="${CFST_TEST_URL:-https://speed.cloudflare.com/__down?bytes=20000000}"
 CFST_DEBUG="${CFST_DEBUG:-0}"
 TOPN="${TOPN:-5}"
-THREADS="${THREADS:-100}"
+THREADS="${THREADS:-auto}"
 PING_TIMES="${PING_TIMES:-4}"
 DOWNLOAD_COUNT="${DOWNLOAD_COUNT:-10}"
 DOWNLOAD_TIME="${DOWNLOAD_TIME:-5}"
@@ -34,6 +34,17 @@ PASSWALL_ORIG_LOCALHOST_PROXY=""
 log() {
   printf '%s\n' "$*"
   logger -t cfst-mosdns-sync "$*" 2>/dev/null || true
+}
+
+detect_cpu_threads() {
+  cpu_threads="$(nproc 2>/dev/null || true)"
+  if [ -z "$cpu_threads" ] || [ "$cpu_threads" = "0" ]; then
+    cpu_threads="$(grep -c '^processor' /proc/cpuinfo 2>/dev/null || true)"
+  fi
+  if [ -z "$cpu_threads" ] || [ "$cpu_threads" = "0" ]; then
+    cpu_threads=1
+  fi
+  echo "$cpu_threads"
 }
 
 fetch_url() {
@@ -201,6 +212,22 @@ esac
 if [ "$TOPN" -le 0 ]; then
   log "TOPN must be > 0"
   exit 1
+fi
+
+if [ "$THREADS" = "auto" ]; then
+  THREADS="$(detect_cpu_threads)"
+  log "auto-detected THREADS=$THREADS (cpu threads)"
+else
+  case "$THREADS" in
+    ''|*[!0-9]*)
+      log "THREADS must be a positive integer or auto"
+      exit 1
+      ;;
+  esac
+  if [ "$THREADS" -le 0 ]; then
+    log "THREADS must be > 0"
+    exit 1
+  fi
 fi
 
 if [ "$PASSWALL_BYPASS_LOCALHOST_PROXY" = "1" ]; then
