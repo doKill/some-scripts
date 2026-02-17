@@ -215,8 +215,11 @@ if [ "$TOPN" -le 0 ]; then
 fi
 
 if [ "$THREADS" = "auto" ]; then
-  THREADS="$(detect_cpu_threads)"
-  log "auto-detected THREADS=$THREADS (cpu threads)"
+  cpu_threads="$(detect_cpu_threads)"
+  THREADS=$((cpu_threads * 10))
+  [ "$THREADS" -lt 20 ] && THREADS=20
+  [ "$THREADS" -gt 40 ] && THREADS=40
+  log "auto-detected cpu_threads=$cpu_threads, THREADS=$THREADS (clamped 20-40)"
 else
   case "$THREADS" in
     ''|*[!0-9]*)
